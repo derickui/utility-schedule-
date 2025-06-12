@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Utility App - Clock, Calendar, Calculator, Weather, Alarm, Notes</title>
+<link rel="icon" type="image" href="Screenshot_20250613_060704.jpg">
+<style>
+  :root {
+    --bg: #f0f0f0;
+    --text: #000;
+    --card: #fff;
+    --primary: #007bff;
+  }
+  [data-theme="dark"] {
+    --bg: #121212;
+    --text: #eee;
+    --card: #222;
+  }
+  body {
+    margin:0; padding:10px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(320px,1fr));
+    gap: 15px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.1);
+    padding: 15px;
+  }
+  h2 {
+    margin-top: 0;
+  }
+  button, input, select, textarea {
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    padding: 6px;
+    margin: 4px 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  button {
+    cursor: pointer;
+    background: var(--primary);
+    border: none;
+    color: white;
+    font-weight: 600;
+  }
+  .clock {
+    font-size: 2.5rem;
+    text-align: center;
+    font-weight: 700;
+  }
+  .theme-toggle {
+    margin-top: 10px;
+  }
+  /* Calendar styles */
+  table.calendar {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table.calendar th, table.calendar td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: center;
+    min-width: 40px;
+    height: 50px;
+    vertical-align: top;
+    position: relative;
+  }
+  table.calendar th {
+    background: #ddd;
+  }
+  .today {
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    padding: 5px 9px;
+    display: inline-block;
+  }
+  .note-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: #ff6b6b;
+    color: white;
+    font-size: 12px;
+    border-radius: 4px;
+    padding: 1px 4px;
+  }
+  .notes-list {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  .note-item {
+    background: #e8f0fe;
+    padding: 6px 8px;
+    margin: 4px 0;
+    border-radius: 5px;
+    font-size: 0.9rem;
+  }
+  /* Calculator styles - Android VIVO style */
+  .calc {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 8px;
+  }
+  .calc-display {
+    grid-column: span 4;
+    height: 3.2rem;
+    font-size: 1.8rem;
+    text-align: right;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: #333;
+    color: white;
+    user-select: none;
+  }
+  .calc button {
+    background: #eee;
+    border: none;
+    font-size: 1.3rem;
+    font-weight: 600;
+    padding: 15px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px #bbb;
+    transition: background-color 0.2s;
+  }
+  .calc button.operator {
+    background: #4a90e2;
+    color: white;
+  }
+  .calc button:active {
+    background: #999;
+    color: white;
+  }
+  /* Weather styles */
+  .weather {
+    text-align: center;
+  }
+  .weather h3 {
+    margin: 10px 0 4px;
+  }
+  .alarm-controls label {
+    font-weight: 600;
+  }
+  .alarm-controls input, .alarm-controls button {
+    margin-top: 6px;
+  }
+  @media (max-width: 480px) {
+    body {
+      padding: 5px;
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- Clock -->
+<div class="card">
+  <h2>🕒 Clock</h2>
+  <div class="clock" id="clock">--:--:--</div>
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle Dark/Light Theme</button>
+</div>
+
+<!-- Calendar -->
+<div class="card">
+  <h2>📅 Calendar & Notes</h2>
+  <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:1.5px;">
+    <button onclick="changeMonth(-1)"> Prev</button>
+    <div id="monthLabel" style="font-weight:700;"></div>
+    <button onclick="changeMonth(1)"> Next</button>
+  </div>
+  <div id="calendar"></div>
+  <hr />
+  <label for="noteDate">Select Date:</label>
+  <input type="date" id="noteDate" />
+  <textarea id="noteText" rows="3" placeholder="Add note here..."></textarea>
+  <button onclick="saveNote()">Save Note</button>
+  <h3>Notes for <span id="notesForDate">-</span>:</h3>
+  <div id="notesList" class="notes-list"></div>
+</div>
+
+<!-- Calculator (Android VIVO style) -->
+<div class="card">
+  <h2>CALCULATOR</h2>
+  <div class="calc">
+    <input type="text" id="calcDisplay" class="calc-display" readonly />
+    <button onclick="clearCalc()">C</button>
+    <button onclick="calcBackspace()">⌫</button>
+    <button onclick="calcInput('%')" class="operator">%</button>
+    <button onclick="calcInput('/')" class="operator">÷</button>
+    <button onclick="calcInput('7')">7</button>
+    <button onclick="calcInput('8')">8</button>
+    <button onclick="calcInput('9')">9</button>
+    <button onclick="calcInput('*')" class="operator">×</button>
+    <button onclick="calcInput('4')">4</button>
+    <button onclick="calcInput('5')">5</button>
+    <button onclick="calcInput('6')">6</button>
+    <button onclick="calcInput('-')" class="operator">−</button>
+    <button onclick="calcInput('1')">1</button>
+    <button onclick="calcInput('2')">2</button>
+    <button onclick="calcInput('3')">3</button>
+    <button onclick="calcInput('+')" class="operator">+</button>
+    <button onclick="calcInput('00')">00</button>
+    <button onclick="calcInput('0')">0</button>
+    <button onclick="calcInput('.')">.</button>
+    <button onclick="calculateResult()" class="operator">=</button>
+  </div>
+</div>
+
+<!-- Weather -->
+<div class="card weather">
+  <h2>🌤 Weather</h2>
+  <input type="text" id="cityInput" placeholder="Enter city name" />
+  <button onclick="getWeather()">Get Weather</button>
+  <div id="weatherResult"></div>
+</div>
+
+<!-- Alarm -->
+<div class="card">
+  <h2>⏰ Alarm</h2>
+  <div class="alarm-controls">
+    <label for="alarmTime">Set Alarm Time:</label>
+    <input type="time" id="alarmTime" />
+    <button onclick="setAlarm()">Set Alarm</button>
+    <button onclick="stopAlarm()">Stop Alarm</button>
+  </div>
+  <div id="alarmStatus" style="margin-top:10px; font-weight:bold;"></div>
+  <audio id="alarmAudio" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const current = document.body.getAttribute('data-theme');
+    document.body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+  }
+
+  // Clock
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleTimeString();
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Calendar + Notes
+  let currentMonth = new Date().getMonth();
+  let currentYear = new Date().getFullYear();
+  const noteStore = JSON.parse(localStorage.getItem('noteStore') || '{}');
+
+  function changeMonth(offset) {
+    currentMonth += offset;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === currentMonth;
+
+    let html = "<table class='calendar'><tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr>";
+    for (let i = 0; i < firstDay; i++) {
+      html += '<td></td>';
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const notesForDate = noteStore[dateStr] || [];
+      const hasNote = notesForDate.length > 0;
+      const isToday = isCurrentMonth && today.getDate() === d;
+      const dayHtml = isToday ? `<span class="today">${d}</span>` : d;
+      const badge = hasNote ? `<div class="note-badge">📝</div>` : '';
+      html += `<td onclick="selectDate('${dateStr}')">${dayHtml}${badge}</td>`;
+      if ((firstDay + d) % 7 === 0) html += '</tr><tr>';
+    }
+    html += '</tr></table>';
+    document.getElementById('calendar').innerHTML = html;
+    document.getElementById('monthLabel').textContent = new Date(currentYear, currentMonth).toLocaleString('default', {month:'long', year:'numeric'});
+  }
+
+  function saveNote() {
+    const date = document.getElementById('noteDate').value;
+    const text = document.getElementById('noteText').value.trim();
+    if (!date) {
+      alert('Please select a date!');
+      return;
+    }
+    if (!text) {
+      alert('Please enter note text!');
+      return;
+    }
+    if (!noteStore[date]) noteStore[date] = [];
+    noteStore[date].push(text);
+    localStorage.setItem('noteStore', JSON.stringify(noteStore));
+    document.getElementById('noteText').value = '';
+    selectDate(date);
+    renderCalendar();
+  }
+
+  function selectDate(date) {
+    document.getElementById('noteDate').value = date;
+    renderNotes(date);
+  }
+
+  function renderNotes(date) {
+    const notesList = document.getElementById('notesList');
+    const notesForDate = noteStore[date] || [];
+    document.getElementById('notesForDate').textContent = date;
+    notesList.innerHTML = '';
+    if (notesForDate.length === 0) {
+      notesList.textContent = 'No notes for this date.';
+      return;
+    }
+    for (const note of notesForDate) {
+      const div = document.createElement('div');
+      div.className = 'note-item';
+      div.textContent = note;
+      notesList.appendChild(div);
+    }
+  }
+
+  // Initialize calendar and notes display
+  renderCalendar();
+  if (document.getElementById('noteDate').value === '') {
+    const todayStr = new Date().toISOString().slice(0,10);
+    selectDate(todayStr);
+  }
+
+  // Calculator (Android VIVO style)
+  const calcDisplay = document.getElementById('calcDisplay');
+  function calcInput(val) {
+    if (calcDisplay.value === 'Error') calcDisplay.value = '';
+    if (val === '%' && calcDisplay.value.length > 0) {
+      // Treat % as divide by 100
+      calcDisplay.value += '/100';
+    } else {
+      calcDisplay.value += val;
+    }
+  }
+  function clearCalc() {
+    calcDisplay.value = '';
+  }
+  function calcBackspace() {
+    calcDisplay.value = calcDisplay.value.slice(0, -1);
+  }
+  function calculateResult() {
+    try {
+      // Replace multiply/divide symbols for eval
+      let exp = calcDisplay.value.replace(/×/g, '*').replace(/÷/g, '/');
+      // Evaluate safely
+      const result = Function('"use strict";return (' + exp + ')')();
+      calcDisplay.value = Number.isFinite(result) ? result : 'Error';
+    } catch {
+      calcDisplay.value = 'Error';
+    }
+  }
+
+  // Weather - Using OpenWeather API (replace YOUR_API_KEY)
+  async function getWeather() {
+    const city = document.getElementById('cityInput').value.trim();
+    const weatherResult = document.getElementById('weatherResult');
+    if (!city) {
+      weatherResult.textContent = 'Please enter a city name.';
+      return;
+    }
+    weatherResult.textContent = 'Loading...';
+    try {
+      const apiKey = '42d92d44df27338775c61def529cf45d'; // <-- Replace this with your OpenWeather API key
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${apiKey}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('City not found');
+      const data = await response.json();
+      weatherResult.innerHTML = `
+        <h3>${data.name}, ${data.sys.country}</h3>
+        <p>🌡 Temp: ${data.main.temp} °C</p>
+        <p>🌬 Wind: ${data.wind.speed} m/s</p>
+        <p>☁ Conditions: ${data.weather[0].description}</p>
+      `;
+    } catch(err) {
+      weatherResult.textContent = 'Error: ' + err.message;
+    }
+  }
+
+  // Alarm
+  let alarmTimeout = null;
+  function setAlarm() {
+    stopAlarm();
+    const alarmTime = document.getElementById('alarmTime').value;
+    if (!alarmTime) {
+      alert('Please set an alarm time');
+      return;
+    }
+    const now = new Date();
+    const [hours, minutes] = alarmTime.split(':').map(Number);
+    let alarmDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+    if (alarmDate <= now) alarmDate.setDate(alarmDate.getDate() + 1); // Next day if time passed
+
+    const msToAlarm = alarmDate.getTime() - now.getTime();
+    alarmTimeout = setTimeout(triggerAlarm, msToAlarm);
+
+    document.getElementById('alarmStatus').textContent = `Alarm set for ${alarmDate.toLocaleTimeString()}`;
+  }
+
+  function triggerAlarm() {
+    document.getElementById('alarmStatus').textContent = '⏰ Alarm ringing!';
+    const audio = document.getElementById('alarmAudio');
+    audio.loop = true;
+    audio.play();
+  }
+
+  function stopAlarm() {
+    if (alarmTimeout) clearTimeout(alarmTimeout);
+    const audio = document.getElementById('alarmAudio');
+    audio.pause();
+    audio.currentTime = 0;
+    document.getElementById('alarmStatus').textContent = 'Alarm stopped.';
+  }
+</script>
+</body>
+      </html>
